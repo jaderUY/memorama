@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonHeader, IonToolbar, IonTitle, IonContent, IonCard, IonGrid, IonRow, IonCol, IonChip, IonBadge, IonButton, } from '@ionic/angular';
+import { IonHeader, IonToolbar, IonTitle, IonContent, IonGrid, IonRow, IonCol, IonChip, IonBadge, IonButton } from '@ionic/angular';
 
 // Actualizamos el tipo para usar la URL de la imagen en lugar del emoji
 type Card = {
@@ -13,118 +13,98 @@ type Card = {
 
 @Component({
   selector: 'app-home',
-  templateUrl: 'home.page.html',
-  styleUrls: ['home.page.scss'],
+  templateUrl: './home.page.html',
+  styleUrls: ['./home.page.scss'],
   standalone: true,
-  imports: [ CommonModule, IonHeader, IonToolbar, IonTitle, IonContent, IonCard, IonGrid, IonRow, IonCol, IonChip, IonBadge, IonButton, ],
+  imports: [CommonModule, IonHeader, IonToolbar, IonTitle, IonContent, IonGrid, IonRow, IonCol, IonChip, IonBadge, IonButton],
 })
 
 export class HomePage implements OnInit {
-  pairs = 8; 
-  banderasDisponibles: string[] = []; // Almacenará todas las banderas de la API
-
-  cards: Card[] = [];
-  firstPick: Card | null = null;
-  secondPick: Card | null = null;
+cards: Card[] = [];
+  pairs = 8; // La Dog API nos traerá 8 imágenes únicas
+  matches = 0;
+  attempts = 0;
+  finished = false;
   boardLocked = false;
-  attempts: number = 0;
-  matches: number = 0;
+  flippedCards: Card[] = [];
 
-  constructor() { }
-
-  async ngOnInit() {
-    await this.obtenerBanderas();
+  ngOnInit() {
     this.newGame();
   }
 
-  // Petición a la API pública de REST Countries
-  async obtenerBanderas() {
-    try {
-      const response = await fetch('https://dog.ceo/api/breeds/image/random/8');
-      const data = await response.json();
-      // Guardamos solo las URLs de las imágenes SVG
-      this.banderasDisponibles = data.map((pais: any) => pais.flags.svg);
-    } catch (error) {
-      console.error('Error al descargar estandartes:', error);
-    }
+  async newGame() {
+    this.matches = 0;
+    this.attempts = 0;
+    this.finished = false;
+    this.boardLocked = false;
+    this.flippedCards = [];
+    this.cards = []; // Limpiamos el tablero mientras carga
+
+    await this.loadDogImages();
   }
 
-  newGame() {
-    this.attempts = 0;
-    this.matches = 0;
-    this.firstPick = null;
-    this.secondPick = null;
-    this.boardLocked = false;
+  loadDogImages() {
+    const images = Array.from(
+      { length: this.pairs },
+      (_, index) => `assets/dogs/dog-${index + 1}.jpg`,
+    );
 
-    // Si no hay banderas cargadas, no podemos iniciar
-    if (this.banderasDisponibles.length === 0) return;
+    this.setupBoard(images);
+  }
 
-    // 1. Desordenamos todas las banderas disponibles para que cada partida tenga países distintos
-    const banderasMezcladas = [...this.banderasDisponibles];
-    for (let i = banderasMezcladas.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [banderasMezcladas[i], banderasMezcladas[j]] = [banderasMezcladas[j], banderasMezcladas[i]];
-    }
+  setupBoard(images: string[]) {
+    const tempCards: Card[] = [];
+    let idCounter = 0;
 
-    // 2. Tomamos solo los 8 primeros países para esta partida
-    const selected: string[] = banderasMezcladas.slice(0, this.pairs);
+    images.forEach((imgUrl) => {
+      const key = `pair-${idCounter}`;
 
-    // 3. Generamos los pares de cartas
-    const deck: Card[] = selected.flatMap<Card>((url: string, i: number) => ([
-      { id: i * 2, key: 'k' + i, imagenUrl: url, revealed: false, matched: false },
-      { id: i * 2 + 1, key: 'k' + i, imagenUrl: url, revealed: false, matched: false }
-    ]));
+      tempCards.push({ id: idCounter, key, imagenUrl: imgUrl, revealed: false, matched: false });
+      idCounter++;
 
-    // 4. Mezclamos el mazo final que irá al tablero
-    for (let i = deck.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [deck[i], deck[j]] = [deck[j], deck[i]];
-    }
+      tempCards.push({ id: idCounter, key, imagenUrl: imgUrl, revealed: false, matched: false });
+      idCounter++;
+    });
 
-    this.cards = deck;
+    this.cards = tempCards.sort(() => Math.random() - 0.5);
   }
 
   onCardClick(card: Card) {
-    if (card.revealed || card.matched || this.boardLocked) {
-      return;
-    }
+    // Bloqueamos la acción si el tablero está en pausa o la carta ya está revelada
+    if (this.boardLocked || card.revealed || card.matched) return;
 
     card.revealed = true;
+    this.flippedCards.push(card);
 
-    if (!this.firstPick) {
-      this.firstPick = card;
-      return;
-    }
-
-    if (!this.secondPick) {
-      this.secondPick = card;
-      this.attempts++;
+    if (this.flippedCards.length === 2) {
       this.boardLocked = true;
-
-      const match = this.firstPick.key === this.secondPick.key;
-
-      if (match) {
-        this.firstPick.matched = true;
-        this.secondPick.matched = true;
-        this.matches++;
-        this.resetPick();
-      } else {
-        setTimeout(() => {
-          if (this.firstPick) this.firstPick.revealed = false;
-          if (this.secondPick) this.secondPick.revealed = false;
-          this.resetPick();
-        }, 800);
-      }
+      this.attempts++;
+      this.checkForMatch();
     }
   }
 
-  resetPick() {
-    this.firstPick = null;
-    this.secondPick = null;
-    this.boardLocked = false;
-  }
+  checkForMatch() {
+    const [card1, card2] = this.flippedCards;
 
-  get finished() {
-    return this.matches === this.pairs;
+    // Comparamos las URLs provenientes de la API para validar el par
+    if (card1.imagenUrl === card2.imagenUrl) {
+      card1.matched = true;
+      card2.matched = true;
+      this.matches++;
+      this.flippedCards = [];
+      this.boardLocked = false;
+
+      if (this.matches === this.pairs) {
+        this.finished = true;
+      }
+    } else {
+      // Si fallan, esperamos 1 segundo para aplicar el CSS de reversa
+      setTimeout(() => {
+        card1.revealed = false;
+        card2.revealed = false;
+        this.flippedCards = [];
+        this.boardLocked = false;
+      }, 1000);
+    }
   }
 }
