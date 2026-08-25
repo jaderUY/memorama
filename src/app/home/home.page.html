@@ -1,20 +1,41 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>
-      Blank
-    </ion-title>
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Memorama Banderas</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
-    </ion-toolbar>
-  </ion-header>
-
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
+<ion-content>
+  <div class="stats">
+    <ion-chip>
+      <span>Pares:&nbsp;</span><ion-badge color="tertiary">{{ matches }}/{{ pairs }}</ion-badge>
+    </ion-chip>
+    <ion-chip>
+      <span>Intentos:&nbsp;</span><ion-badge color="tertiary">{{ attempts }}</ion-badge>
+    </ion-chip>
+    <ion-button size="small" fill="outline" (click)="newGame()">Reiniciar</ion-button>
   </div>
+
+  @if (finished) {
+    <div class="message">¡Completado! Toca “Reiniciar” para jugar otra vez.</div>
+  }
+
+  <ion-grid class="board">
+    <ion-row>
+      @for (c of cards; track c.id) {
+        <ion-col size="3" size-md="2" size-lg="2">
+          <button class="card"
+                  [class.revealed]="c.revealed || c.matched"
+                  [class.matched]="c.matched"
+                  [disabled]="boardLocked || c.matched"
+                  (click)="onCardClick(c)">
+
+            <div class="face back">?</div>
+            <div class="face front">
+              <img [src]="c.imagenUrl" class="card-img" alt="Bandera" />
+            </div>
+          </button>
+        </ion-col>
+      }
+    </ion-row>
+  </ion-grid>
 </ion-content>
