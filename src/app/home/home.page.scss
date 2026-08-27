@@ -2,6 +2,11 @@
   padding: 8px 12px 24px;
 }
 
+/* Correcto: Aplicando clases a tus propios elementos HTML */
+button.card {
+  background: transparent;
+}
+
 /* Centrado y flexbox para la barra superior de estadísticas */
 .stats {
   display: flex;

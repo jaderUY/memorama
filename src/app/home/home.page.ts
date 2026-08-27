@@ -1,4 +1,4 @@
-import { Component, OnInit} from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonHeader, IonToolbar, IonTitle, IonContent, IonGrid, IonRow, IonCol, IonChip, IonBadge, IonButton } from '@ionic/angular';
 
@@ -20,91 +20,96 @@ type Card = {
 })
 
 export class HomePage implements OnInit {
-cards: Card[] = [];
-  pairs = 8; // La Dog API nos traerá 8 imágenes únicas
-  matches = 0;
-  attempts = 0;
-  finished = false;
+  pairs = 8;
+  cards: Card[] = [];
+  firstPick: Card | null = null;
+  secondPick: Card | null = null;
   boardLocked = false;
-  flippedCards: Card[] = [];
+  attempts = 0;
+  matches = 0;
+  imagenesDisponibles: string[] = [];
 
-  ngOnInit() {
+  constructor(private cdr: ChangeDetectorRef) {}
+
+  async ngOnInit() {
+    await this.loadDogImages();
     this.newGame();
   }
 
-  async newGame() {
-    this.matches = 0;
-    this.attempts = 0;
-    this.finished = false;
-    this.boardLocked = false;
-    this.flippedCards = [];
-    this.cards = []; // Limpiamos el tablero mientras carga
-
-    await this.loadDogImages();
-  }
-
-  loadDogImages() {
-    const images = Array.from(
+  async loadDogImages() {
+    this.imagenesDisponibles = Array.from(
       { length: this.pairs },
-      (_, index) => `assets/dogs/dog-${index + 1}.jpg`,
+      (_, index) => `assets/dogs/dog-${index + 1}.jpg`
     );
-
-    this.setupBoard(images);
   }
 
-  setupBoard(images: string[]) {
-    const tempCards: Card[] = [];
-    let idCounter = 0;
+  newGame() {
+    this.attempts = 0;
+    this.matches = 0;
+    this.resetPick();
 
-    images.forEach((imgUrl) => {
-      const key = `pair-${idCounter}`;
+    if (this.imagenesDisponibles.length === 0) return;
 
-      tempCards.push({ id: idCounter, key, imagenUrl: imgUrl, revealed: false, matched: false });
-      idCounter++;
+    const selected = [...this.imagenesDisponibles];
+    const deck: Card[] = selected.flatMap((url, i) => [
+      { id: i * 2, key: 'k' + i, imagenUrl: url, revealed: false, matched: false },
+      { id: i * 2 + 1, key: 'k' + i, imagenUrl: url, revealed: false, matched: false }
+    ]);
 
-      tempCards.push({ id: idCounter, key, imagenUrl: imgUrl, revealed: false, matched: false });
-      idCounter++;
-    });
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
 
-    this.cards = tempCards.sort(() => Math.random() - 0.5);
+    this.cards = deck;
+    this.cdr.detectChanges();
   }
 
   onCardClick(card: Card) {
-    // Bloqueamos la acción si el tablero está en pausa o la carta ya está revelada
-    if (this.boardLocked || card.revealed || card.matched) return;
+    if (card.revealed || card.matched || this.boardLocked) {
+      return;
+    }
 
     card.revealed = true;
-    this.flippedCards.push(card);
 
-    if (this.flippedCards.length === 2) {
-      this.boardLocked = true;
+    if (!this.firstPick) {
+      this.firstPick = card;
+      return;
+    }
+
+    if (!this.secondPick) {
+      this.secondPick = card;
       this.attempts++;
-      this.checkForMatch();
+      this.boardLocked = true;
+
+      // Se guardan referencias locales inmunes a cambios externos
+      const card1 = this.firstPick;
+      const card2 = this.secondPick;
+      const match = card1.key === card2.key;
+
+      if (match) {
+        card1.matched = true;
+        card2.matched = true;
+        this.matches++;
+        this.resetPick();
+      } else {
+        setTimeout(() => {
+          card1.revealed = false;
+          card2.revealed = false;
+          this.resetPick();
+          this.cdr.detectChanges(); // Fuerza a Angular a actualizar el DOM y desbloquear los botones
+        }, 800);
+      }
     }
   }
 
-  checkForMatch() {
-    const [card1, card2] = this.flippedCards;
+  resetPick() {
+    this.firstPick = null;
+    this.secondPick = null;
+    this.boardLocked = false;
+  }
 
-    // Comparamos las URLs provenientes de la API para validar el par
-    if (card1.imagenUrl === card2.imagenUrl) {
-      card1.matched = true;
-      card2.matched = true;
-      this.matches++;
-      this.flippedCards = [];
-      this.boardLocked = false;
-
-      if (this.matches === this.pairs) {
-        this.finished = true;
-      }
-    } else {
-      // Si fallan, esperamos 1 segundo para aplicar el CSS de reversa
-      setTimeout(() => {
-        card1.revealed = false;
-        card2.revealed = false;
-        this.flippedCards = [];
-        this.boardLocked = false;
-      }, 1000);
-    }
+  get finished() {
+    return this.matches === this.pairs;
   }
 }
