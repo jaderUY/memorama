@@ -1,11 +1,15 @@
-import { Component, OnInit, ChangeDetectorRef, inject} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { IonHeader, IonToolbar, IonTitle, IonContent, IonGrid, IonRow, IonCol, IonChip, IonBadge, IonButton } from '@ionic/angular';
+import { Component, OnInit, Inject } from '@angular/core';
+import { HttpClient} from '@angular/common/http';
+import { 
+  IonHeader, IonToolbar, IonTitle, IonContent, IonChip, 
+  IonBadge, IonButton, IonGrid, IonRow, IonCol, IonList, 
+  IonItem, IonLabel, IonNote, IonSpinner 
+} from '@ionic/angular';
+import { ScoreService, ScoreRecord } from '../services/storage';
 
-// Actualizamos el tipo para usar la URL de la imagen en lugar del emoji
-type Card = {
+export interface Card {
   id: number;
-  key: string;
+  key: string; // Utilizado para comparar si hacen pareja
   imagenUrl: string;
   revealed: boolean;
   matched: boolean;
@@ -13,103 +17,154 @@ type Card = {
 
 @Component({
   selector: 'app-home',
-  templateUrl: './home.page.html',
-  styleUrls: ['./home.page.scss'],
+  templateUrl: 'home.page.html',
+  styleUrls: ['home.page.scss'],
   standalone: true,
-  imports: [CommonModule, IonHeader, IonToolbar, IonTitle, IonContent, IonGrid, IonRow, IonCol, IonChip, IonBadge, IonButton],
+  imports: [
+    IonHeader, IonToolbar, IonTitle, IonContent, IonChip, 
+    IonBadge, IonButton, IonGrid, IonRow, IonCol, IonList, 
+    IonItem, IonLabel, IonNote, IonSpinner
+  ]
 })
-
 export class HomePage implements OnInit {
-  pairs = 8;
   cards: Card[] = [];
-  firstPick: Card | null = null;
-  secondPick: Card | null = null;
-  boardLocked = false;
-  attempts = 0;
-  matches = 0;
-  imagenesDisponibles: string[] = [];
+  pairs: number = 6;
+  matches: number = 0;
+  attempts: number = 0;
+  boardLocked: boolean = false;
+  cargandoImagenes: boolean = false;
 
-  private cdr = inject(ChangeDetectorRef);
+  private firstCard: Card | null = null;
+  private secondCard: Card | null = null;
+  private _finished: boolean = false;
+  private scoreService = Inject(ScoreService);
+  private http = Inject(HttpClient);
 
-  async ngOnInit() {
-    await this.loadDogImages();
+  ngOnInit() {
     this.newGame();
   }
 
-  async loadDogImages() {
-    this.imagenesDisponibles = Array.from(
-      { length: this.pairs },
-      (_, index) => `assets/dogs/dog-${index + 1}.jpg`
-    );
+  /**
+   * Getter: Expone el estado de finalización del juego a la vista HTML.
+   */
+  get finished(): boolean {
+    return this._finished;
   }
 
-  newGame() {
-    this.attempts = 0;
+  /**
+   * Setter: Al marcar el juego como finalizado (`finished = true`), 
+   * se guarda automáticamente el número de intentos en el servicio.
+   */
+  set finished(val: boolean) {
+    this._finished = val;
+    if (val && this.attempts > 0) {
+      this.scoreService.registrarIntento(this.attempts);
+    }
+  }
+
+  /**
+   * Getter: Obtiene los mejores récords desde el servicio.
+   */
+  get mejoresIntentos(): ScoreRecord[] {
+    return this.scoreService.scores;
+  }
+
+  /**
+   * Getter: Obtiene el mejor récord histórico.
+   */
+  get mejorRecord(): number | null {
+    return this.scoreService.mejorRecord;
+  }
+
+  /**
+   * Inicia o reinicia el juego consultando la API de Perros y barajando el tablero.
+   */
+  async newGame() {
     this.matches = 0;
-    this.resetPick();
+    this.attempts = 0;
+    this._finished = false; // Asignación privada directa sin activar el setter
+    this.boardLocked = false;
+    this.firstCard = null;
+    this.secondCard = null;
+    this.cards = [];
+    this.cargandoImagenes = true;
 
-    if (this.imagenesDisponibles.length === 0) return;
+    try {
+      // Consumir API de perros para obtener imágenes únicas
+      const res: any = await this.http.get(`https://dog.ceo/api/breeds/image/random/${this.pairs}`).toPromise();
+      const dogImages: string[] = res.message;
 
-    const selected = [...this.imagenesDisponibles];
-    const deck: Card[] = selected.flatMap((url, i) => [
-      { id: i * 2, key: 'k' + i, imagenUrl: url, revealed: false, matched: false },
-      { id: i * 2 + 1, key: 'k' + i, imagenUrl: url, revealed: false, matched: false }
-    ]);
+      // Crear parejas de cartas
+      const baraja: Card[] = [];
+      let idCounter = 1;
 
-    for (let i = deck.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [deck[i], deck[j]] = [deck[j], deck[i]];
+      dogImages.forEach((url, index) => {
+        const key = `dog_${index}`;
+        baraja.push({ id: idCounter++, key, imagenUrl: url, revealed: false, matched: false });
+        baraja.push({ id: idCounter++, key, imagenUrl: url, revealed: false, matched: false });
+      });
+
+      // Barajar aleatoriamente
+      this.cards = baraja.sort(() => Math.random() - 0.5);
+    } catch (error) {
+      console.error('Error al cargar imágenes de la API:', error);
+    } finally {
+      this.cargandoImagenes = false;
     }
-
-    this.cards = deck;
-    this.cdr.detectChanges();
   }
 
+  /**
+   * Controla el clic en cada carta y valida si hacen pareja.
+   */
   onCardClick(card: Card) {
-    if (card.revealed || card.matched || this.boardLocked) {
-      return;
-    }
+    if (this.boardLocked || card.revealed || card.matched) return;
 
     card.revealed = true;
 
-    if (!this.firstPick) {
-      this.firstPick = card;
+    if (!this.firstCard) {
+      this.firstCard = card;
       return;
     }
 
-    if (!this.secondPick) {
-      this.secondPick = card;
-      this.attempts++;
-      this.boardLocked = true;
+    this.secondCard = card;
+    this.attempts++;
+    this.boardLocked = true;
 
-      // Se guardan referencias locales inmunes a cambios externos
-      const card1 = this.firstPick;
-      const card2 = this.secondPick;
-      const match = card1.key === card2.key;
+    this.evaluarPar();
+  }
 
-      if (match) {
-        card1.matched = true;
-        card2.matched = true;
-        this.matches++;
-        this.resetPick();
-      } else {
-        setTimeout(() => {
-          card1.revealed = false;
-          card2.revealed = false;
-          this.resetPick();
-          this.cdr.detectChanges(); // Fuerza a Angular a actualizar el DOM y desbloquear los botones
-        }, 800);
+  private evaluarPar() {
+    if (this.firstCard?.key === this.secondCard?.key) {
+      // ¿Es Pareja?
+      this.firstCard!.matched = true;
+      this.secondCard!.matched = true;
+      this.matches++;
+      this.resetTurno();
+
+      // Verificar victoria
+      if (this.matches === this.pairs) {
+        this.finished = true; // Activa el SETTER que guarda en @capacitor/preferences
       }
+    } else {
+      // No es pareja: Voltear de nuevo tras 1 segundo
+      setTimeout(() => {
+        if (this.firstCard) this.firstCard.revealed = false;
+        if (this.secondCard) this.secondCard.revealed = false;
+        this.resetTurno();
+      }, 1000);
     }
   }
 
-  resetPick() {
-    this.firstPick = null;
-    this.secondPick = null;
+  private resetTurno() {
+    this.firstCard = null;
+    this.secondCard = null;
     this.boardLocked = false;
   }
 
-  get finished() {
-    return this.matches === this.pairs;
+  /**
+   * Permite al usuario limpiar su historial de récords.
+   */
+  async borrarRecords() {
+    await this.scoreService.borrarHistorial();
   }
 }

@@ -1,41 +1,93 @@
 <ion-header>
   <ion-toolbar color="primary">
-    <ion-title>Memorama de perros</ion-title>
+    <ion-title>Memorama de Perros</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content>
+  <!-- Barra de Estadísticas superiores -->
   <div class="stats">
     <ion-chip>
-      <span>Pares:&nbsp;</span><ion-badge color="tertiary">{{ matches }}/{{ pairs }}</ion-badge>
+      <span>Pares:&nbsp;</span>
+      <ion-badge color="tertiary">{{ matches }}/{{ pairs }}</ion-badge>
     </ion-chip>
+
     <ion-chip>
-      <span>Intentos:&nbsp;</span><ion-badge color="tertiary">{{ attempts }}</ion-badge>
+      <span>Intentos:&nbsp;</span>
+      <ion-badge color="tertiary">{{ attempts }}</ion-badge>
     </ion-chip>
+
+    @if (mejorRecord !== null) {
+    <ion-chip color="success">
+      <span>Récord:&nbsp;</span>
+      <ion-badge color="dark">{{ mejorRecord }} movs</ion-badge>
+    </ion-chip>
+    }
+
     <ion-button size="small" fill="outline" (click)="newGame()">Reiniciar</ion-button>
   </div>
 
-  @if (finished) {
-    <div class="message">¡Completado! Toca “Reiniciar” para jugar otra vez.</div>
+  <!-- Mensaje de Carga -->
+  @if (cargandoImagenes) {
+  <div class="loading-container ion-text-center ion-padding">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>Cargando perritos de la API...</p>
+  </div>
   }
 
+  <!-- Mensaje de Victoria -->
+  @if (finished) {
+  <div class="message animate-pop">
+    🎉 ¡Completado en {{ attempts }} intentos! Toca “Reiniciar” para volver a jugar.
+  </div>
+  }
+
+  <!-- Tablero de Cartas -->
+  @if (!cargandoImagenes) {
   <ion-grid class="board">
     <ion-row>
       @for (c of cards; track c.id) {
-        <ion-col size="3" size-md="2" size-lg="2">
-          <button class="card"
-                  [class.revealed]="c.revealed || c.matched"
-                  [class.matched]="c.matched"
-                  [disabled]="boardLocked || c.matched"
-                  (click)="onCardClick(c)">
+      <ion-col size="4" size-md="3" size-lg="2">
+        <button class="card" [class.revealed]="c.revealed || c.matched" [class.matched]="c.matched"
+          [disabled]="boardLocked || c.matched" (click)="onCardClick(c)">
 
-            <div class="face back">?</div>
-            <div class="face front">
-              <img [src]="c.imagenUrl" class="card-img" alt="Perro" />
-            </div>
-          </button>
-        </ion-col>
+          <div class="face back">🐶</div>
+          <div class="face front">
+            <img [src]="c.imagenUrl" class="card-img" alt="Perro" />
+          </div>
+        </button>
+      </ion-col>
       }
     </ion-row>
   </ion-grid>
+  }
+
+  <!-- Tabla de Mejores Récords -->
+  @if (mejoresIntentos.length > 0) {
+  <div class="records-container ion-padding-horizontal">
+    <div class="records-header">
+      <h3>🏆 Tabla de Mejores Récords</h3>
+      <!-- Cambiar borrarRécords() por borrarRecords() -->
+      <ion-button fill="clear" color="danger" size="small" (click)="borrarRecords()">
+        Borrar
+      </ion-button>
+    </div>
+
+    <ion-list lines="full">
+      @for (record of mejoresIntentos; track $index) {
+      <ion-item>
+        <ion-badge slot="start" [color]="$index === 0 ? 'warning' : 'medium'">
+          #{{ $index + 1 }}
+        </ion-badge>
+        <ion-label>
+          <p>Fecha: {{ record.fecha }}</p>
+        </ion-label>
+        <ion-note slot="end" color="primary">
+          <strong>{{ record.intentos }} intentos</strong>
+        </ion-note>
+      </ion-item>
+      }
+    </ion-list>
+  </div>
+  }
 </ion-content>
