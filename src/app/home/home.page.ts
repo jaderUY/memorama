@@ -1,6 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core'; // 1. Importar ChangeDetectorRef
 import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
 import { 
   IonHeader, IonToolbar, IonTitle, IonContent, IonChip, 
   IonBadge, IonButton, IonGrid, IonRow, IonCol, IonList, 
@@ -10,7 +9,7 @@ import { ScoreService, ScoreRecord } from '../services/storage';
 
 export interface Card {
   id: number;
-  key: string; // Utilizado para comparar si hacen pareja
+  key: string;
   imagenUrl: string;
   revealed: boolean;
   matched: boolean;
@@ -39,24 +38,18 @@ export class HomePage implements OnInit {
   private secondCard: Card | null = null;
   private _finished: boolean = false;
 
-  private readonly http = inject(HttpClient);
-  private readonly scoreService = inject(ScoreService);
+  private scoreService = inject(ScoreService);
+  private http = inject(HttpClient);
+  private cdr = inject(ChangeDetectorRef); // 2. Inyectar ChangeDetectorRef
 
   ngOnInit() {
     this.newGame();
   }
 
-  /**
-   * Getter: Expone el estado de finalización del juego a la vista HTML.
-   */
   get finished(): boolean {
     return this._finished;
   }
 
-  /**
-   * Setter: Al marcar el juego como finalizado (`finished = true`), 
-   * se guarda automáticamente el número de intentos en el servicio.
-   */
   set finished(val: boolean) {
     this._finished = val;
     if (val && this.attempts > 0) {
@@ -64,61 +57,52 @@ export class HomePage implements OnInit {
     }
   }
 
-  /**
-   * Getter: Obtiene los mejores récords desde el servicio.
-   */
   get mejoresIntentos(): ScoreRecord[] {
     return this.scoreService.scores;
   }
 
-  /**
-   * Getter: Obtiene el mejor récord histórico.
-   */
   get mejorRecord(): number | null {
     return this.scoreService.mejorRecord;
   }
 
-  /**
-   * Inicia o reinicia el juego consultando la API de Perros y barajando el tablero.
-   */
-  async newGame() {
+  newGame() {
     this.matches = 0;
     this.attempts = 0;
-    this._finished = false; // Asignación privada directa sin activar el setter
+    this._finished = false;
     this.boardLocked = false;
     this.firstCard = null;
     this.secondCard = null;
     this.cards = [];
     this.cargandoImagenes = true;
 
-    try {
-      const res = await firstValueFrom(
-        this.http.get<any>(`https://dog.ceo/api/breeds/image/random/${this.pairs}`)
-      );
-      const dogImages: string[] = res.message;
+    // 3. Petición HTTP directa con suscripción reactiva
+    this.http.get<any>(`https://dog.ceo/api/breeds/image/random/${this.pairs}`).subscribe({
+      next: (res) => {
+        if (res && res.message) {
+          const dogImages: string[] = res.message;
+          const baraja: Card[] = [];
+          let idCounter = 1;
 
-      // Crear parejas de cartas
-      const baraja: Card[] = [];
-      let idCounter = 1;
+          dogImages.forEach((url, index) => {
+            const key = `dog_${index}`;
+            baraja.push({ id: idCounter++, key, imagenUrl: url, revealed: false, matched: false });
+            baraja.push({ id: idCounter++, key, imagenUrl: url, revealed: false, matched: false });
+          });
 
-      dogImages.forEach((url, index) => {
-        const key = `dog_${index}`;
-        baraja.push({ id: idCounter++, key, imagenUrl: url, revealed: false, matched: false });
-        baraja.push({ id: idCounter++, key, imagenUrl: url, revealed: false, matched: false });
-      });
-
-      // Barajar aleatoriamente
-      this.cards = baraja.sort(() => Math.random() - 0.5);
-    } catch (error) {
-      console.error('Error al cargar imágenes de la API:', error);
-    } finally {
-      this.cargandoImagenes = false;
-    }
+          this.cards = baraja.sort(() => Math.random() - 0.5);
+        }
+        
+        this.cargandoImagenes = false;
+        this.cdr.detectChanges(); // Forzar a Angular a redibujar el HTML inmediatamente
+      },
+      error: (err) => {
+        console.error('Error al consultar la API de perros:', err);
+        this.cargandoImagenes = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
-  /**
-   * Controla el clic en cada carta y valida si hacen pareja.
-   */
   onCardClick(card: Card) {
     if (this.boardLocked || card.revealed || card.matched) return;
 
@@ -138,18 +122,15 @@ export class HomePage implements OnInit {
 
   private evaluarPar() {
     if (this.firstCard?.key === this.secondCard?.key) {
-      // ¿Es Pareja?
       this.firstCard!.matched = true;
       this.secondCard!.matched = true;
       this.matches++;
       this.resetTurno();
 
-      // Verificar victoria
       if (this.matches === this.pairs) {
-        this.finished = true; // Activa el SETTER que guarda en @capacitor/preferences
+        this.finished = true;
       }
     } else {
-      // No es pareja: Voltear de nuevo tras 1 segundo
       setTimeout(() => {
         if (this.firstCard) this.firstCard.revealed = false;
         if (this.secondCard) this.secondCard.revealed = false;
@@ -164,10 +145,8 @@ export class HomePage implements OnInit {
     this.boardLocked = false;
   }
 
-  /**
-   * Permite al usuario limpiar su historial de récords.
-   */
   async borrarRecords() {
     await this.scoreService.borrarHistorial();
+    this.cdr.detectChanges();
   }
 }
