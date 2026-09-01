@@ -1,139 +1,99 @@
-/* Tablero de juego */
-.board {
-  padding: 8px 12px 24px;
-}
-
-/* Flexbox para la barra superior de estadísticas */
-.stats {
+// Contenedor principal de controles
+.controls-container {
   display: flex;
-  justify-content: center;
+  justify-content: space-around;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px;
+  margin-bottom: 16px;
 }
 
+// Carga
 .loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   margin-top: 40px;
-
-  p {
-    font-size: 0.95rem;
-    color: var(--ion-color-medium);
-    margin-top: 10px;
-  }
 }
 
-.message {
+// Banner de victoria
+.victory-banner {
+  background-color: #1b3823;
+  color: #2dd36f;
+  padding: 12px;
+  border-radius: 8px;
   text-align: center;
   font-weight: bold;
-  font-size: 1.05rem;
-  color: var(--ion-color-success);
-  margin: 10px 15px;
-  padding: 10px;
-  background: rgba(var(--ion-color-success-rgb), 0.1);
-  border-radius: 8px;
+  margin-bottom: 16px;
+  border: 1px solid #2dd36f;
 }
 
-/* Botón Carta y Efectos 3D */
-button.card {
-  position: relative;
+// Grid adaptable sin desbordamiento
+.grid-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+// Carta individual: Cuadrada perfecta con recorte estricto
+.card-item {
   width: 100%;
-  height: 100px;
-  margin: 6px auto;
-  border: none;
-  background: transparent;
-  perspective: 1000px;
-  transform-style: preserve-3d;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  overflow: hidden; // Previene el desbordamiento de las imágenes
+  background-color: #3880ff;
+  border: 2px solid transparent;
+  box-sizing: border-box;
   cursor: pointer;
-  transition: transform 0.18s ease;
+  user-select: none;
+  transition: border-color 0.2s ease, transform 0.1s ease;
 
   &:active {
-    transform: scale(0.95);
+    transform: scale(0.96);
   }
 
-  &:disabled {
-    cursor: default;
+  &.matched {
+    border-color: #2dd36f;
   }
 
-  .face {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    border-radius: 14px;
-    font-size: 32px;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    transition: transform 0.55s cubic-bezier(0.4, 0.2, 0.2, 1), box-shadow 0.25s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  }
-
-  .back {
-    background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-secondary));
-    color: #fff;
-    transform: rotateY(0deg);
-  }
-
-  .front {
-    background: #ffffff;
-    transform: rotateY(180deg);
-    padding: 4px;
-  }
-
-  .card-img {
+  img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    border-radius: 10px;
+    object-fit: cover; // Ajusta la imagen dentro de la casilla sin deformarla
+    display: block;
   }
 
-  &.revealed .back {
-    transform: rotateY(-180deg);
-  }
-
-  &.revealed .front {
-    transform: rotateY(0deg);
-  }
-
-  &.matched .front {
-    outline: 3px solid var(--ion-color-success);
-    box-shadow: 0 0 0 4px rgba(var(--ion-color-success-rgb), 0.25);
-    animation: matchPulse 0.45s ease;
+  .card-back {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
   }
 }
 
-@keyframes matchPulse {
-  0% { transform: rotateY(0deg) scale(1); }
-  50% { transform: rotateY(0deg) scale(1.08); }
-  100% { transform: rotateY(0deg) scale(1); }
-}
-
-/* Sección de Récords Guardados */
+// Sección del historial de puntuaciones
 .records-container {
-  max-width: 500px;
-  margin: 10px auto 30px;
+  margin-top: 24px;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
 
   .records-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
 
     h3 {
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: var(--ion-color-dark);
+      font-size: 1.1rem;
       margin: 0;
     }
   }
 
   ion-list {
-    border-radius: 12px;
+    border-radius: 10px;
+    margin-top: 8px;
     overflow: hidden;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
   }
 }

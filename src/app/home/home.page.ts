@@ -1,11 +1,11 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core'; 
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import {
-  IonHeader, IonToolbar, IonTitle, IonContent, IonChip,
-  IonBadge, IonButton, IonGrid, IonRow, IonCol, IonList,
-  IonItem, IonLabel, IonNote, IonSpinner
+import { 
+  IonHeader, IonToolbar, IonTitle, IonContent, IonChip, 
+  IonBadge, IonButton, IonList, IonItem, IonLabel, IonNote, IonSpinner 
 } from '@ionic/angular';
 import { ScoreService, ScoreRecord } from '../services/storage';
+import { IonGrid, IonRow } from "@ionic/angular";
 
 export interface Card {
   id: number;
@@ -20,10 +20,9 @@ export interface Card {
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
   standalone: true,
-  imports: [
-    IonHeader, IonToolbar, IonTitle, IonContent, IonChip,
-    IonBadge, IonButton, IonGrid, IonRow, IonCol, IonList,
-    IonItem, IonLabel, IonNote, IonSpinner
+  imports: [IonRow, IonGrid, 
+    IonHeader, IonToolbar, IonTitle, IonContent, IonChip, 
+    IonBadge, IonButton, IonList, IonItem, IonLabel, IonNote, IonSpinner
   ]
 })
 export class HomePage implements OnInit {
@@ -40,7 +39,7 @@ export class HomePage implements OnInit {
 
   private scoreService = inject(ScoreService);
   private http = inject(HttpClient);
-  private cdr = inject(ChangeDetectorRef); // 2. Inyectar ChangeDetectorRef
+  private cdr = inject(ChangeDetectorRef);
 
   ngOnInit() {
     this.newGame();
@@ -54,15 +53,12 @@ export class HomePage implements OnInit {
     this._finished = val;
     if (val && this.attempts > 0) {
       this.scoreService.registrarIntento(this.attempts);
+      this.cdr.detectChanges();
     }
   }
 
   get mejoresIntentos(): ScoreRecord[] {
     return this.scoreService.scores;
-  }
-
-  get mejorRecord(): number | null {
-    return this.scoreService.mejorRecord;
   }
 
   newGame() {
@@ -75,10 +71,9 @@ export class HomePage implements OnInit {
     this.cards = [];
     this.cargandoImagenes = true;
 
-    // 3. Petición HTTP directa con suscripción reactiva
     this.http.get<any>(`https://dog.ceo/api/breeds/image/random/${this.pairs}`).subscribe({
       next: (res) => {
-        if (res && res.message) {
+        if (res?.message) {
           const dogImages: string[] = res.message;
           const baraja: Card[] = [];
           let idCounter = 1;
@@ -91,12 +86,11 @@ export class HomePage implements OnInit {
 
           this.cards = baraja.sort(() => Math.random() - 0.5);
         }
-
         this.cargandoImagenes = false;
-        this.cdr.detectChanges(); // Forzar a Angular a redibujar el HTML inmediatamente
+        this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error('Error al consultar la API de perros:', err);
+        console.error('Error al obtener imágenes:', err);
         this.cargandoImagenes = false;
         this.cdr.detectChanges();
       }
@@ -104,50 +98,44 @@ export class HomePage implements OnInit {
   }
 
   onCardClick(card: Card) {
-    // Evitar clics si el tablero está bloqueado o si la carta ya está volteada/emparejada
     if (this.boardLocked || card.revealed || card.matched) return;
 
     card.revealed = true;
-    this.cdr.detectChanges(); // Muestra el volteo de la carta inmediatamente en pantalla
+    this.cdr.detectChanges();
 
     if (!this.firstCard) {
       this.firstCard = card;
       return;
     }
 
-    // Segunda carta elegida
     this.secondCard = card;
     this.attempts++;
-    this.boardLocked = true; // Bloquea el tablero temporalmente
-    this.cdr.detectChanges(); // Actualiza el contador de intentos en la interfaz
+    this.boardLocked = true;
+    this.cdr.detectChanges();
 
     this.evaluarPar();
   }
 
   private evaluarPar() {
-    // Guardar referencias locales de las dos cartas seleccionadas
     const card1 = this.firstCard;
     const card2 = this.secondCard;
 
     if (card1?.key === card2?.key) {
-      // Es Par
       if (card1) card1.matched = true;
       if (card2) card2.matched = true;
       this.matches++;
       this.resetTurno();
 
       if (this.matches === this.pairs) {
-        this.finished = true; // Invoca el setter que guarda en Capacitor Preferences
+        this.finished = true;
       }
       this.cdr.detectChanges();
     } else {
-      // No es Par: Ocultar ambas cartas tras 1 segundo
       setTimeout(() => {
         if (card1) card1.revealed = false;
         if (card2) card2.revealed = false;
-
-        this.resetTurno(); // Desbloquea el tablero (boardLocked = false)
-        this.cdr.detectChanges(); // Fuerza a Ionic/Angular a redibujar el tablero desbloqueado
+        this.resetTurno();
+        this.cdr.detectChanges();
       }, 1000);
     }
   }
@@ -155,7 +143,7 @@ export class HomePage implements OnInit {
   private resetTurno() {
     this.firstCard = null;
     this.secondCard = null;
-    this.boardLocked = false; // Permite hacer clics de nuevo
+    this.boardLocked = false;
   }
 
   async borrarRecords() {

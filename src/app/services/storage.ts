@@ -17,17 +17,10 @@ export class ScoreService {
     this.cargarStorage();
   }
 
-  /**
-   * Getter: Devuelve una copia de la lista ordenada de mejores intentos.
-   */
   get scores(): ScoreRecord[] {
     return [...this._scores];
   }
 
-  /**
-   * Setter: Ordena los registros de menor a mayor intentos, 
-   * conserva solo el Top 5 y guarda en almacenamiento nativo.
-   */
   set scores(nuevosScores: ScoreRecord[]) {
     this._scores = nuevosScores
       .sort((a, b) => a.intentos - b.intentos)
@@ -36,34 +29,16 @@ export class ScoreService {
     this.guardarEnStorage();
   }
 
-  /**
-   * Getter: Devuelve la menor cantidad de intentos realizada históricamente.
-   */
-  get mejorRecord(): number | null {
-    return this._scores.length > 0 ? this._scores[0].intentos : null;
-  }
-
-  /**
-   * Registra una nueva victoria y ejecuta el setter automáticamente.
-   */
   public registrarIntento(intentos: number): void {
     const nuevoRegistro: ScoreRecord = {
       intentos,
       fecha: new Date().toLocaleDateString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
+        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
       })
     };
-
-    // Al asignar a 'this.scores' se dispara el SETTER
     this.scores = [...this._scores, nuevoRegistro];
   }
 
-  /**
-   * Limpia el historial de récords de la aplicación.
-   */
   public async borrarHistorial(): Promise<void> {
     this._scores = [];
     await Preferences.remove({ key: this.STORAGE_KEY });
