@@ -1,5 +1,6 @@
-import { Component, OnInit, Inject } from '@angular/core';
-import { HttpClient} from '@angular/common/http';
+import { Component, OnInit, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { 
   IonHeader, IonToolbar, IonTitle, IonContent, IonChip, 
   IonBadge, IonButton, IonGrid, IonRow, IonCol, IonList, 
@@ -37,8 +38,9 @@ export class HomePage implements OnInit {
   private firstCard: Card | null = null;
   private secondCard: Card | null = null;
   private _finished: boolean = false;
-  private scoreService = Inject(ScoreService);
-  private http = Inject(HttpClient);
+
+  private readonly http = inject(HttpClient);
+  private readonly scoreService = inject(ScoreService);
 
   ngOnInit() {
     this.newGame();
@@ -90,8 +92,9 @@ export class HomePage implements OnInit {
     this.cargandoImagenes = true;
 
     try {
-      // Consumir API de perros para obtener imágenes únicas
-      const res: any = await this.http.get(`https://dog.ceo/api/breeds/image/random/${this.pairs}`).toPromise();
+      const res = await firstValueFrom(
+        this.http.get<any>(`https://dog.ceo/api/breeds/image/random/${this.pairs}`)
+      );
       const dogImages: string[] = res.message;
 
       // Crear parejas de cartas
