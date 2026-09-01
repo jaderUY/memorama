@@ -26,7 +26,7 @@
   border: 1px solid #2dd36f;
 }
 
-// Grid adaptable sin desbordamiento
+// Grid adaptable 
 .grid-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -52,10 +52,12 @@
     transform: scale(0.96);
   }
 
+  // Estado cuando la carta está volteada
   &.matched {
     border-color: #2dd36f;
   }
 
+  // Imagen dentro de la carta
   img {
     width: 100%;
     height: 100%;
@@ -63,6 +65,7 @@
     display: block;
   }
 
+  // Cara posterior de la carta
   .card-back {
     width: 100%;
     height: 100%;
@@ -80,6 +83,7 @@
   margin-left: auto;
   margin-right: auto;
 
+  // Encabezado del historial
   .records-header {
     display: flex;
     justify-content: space-between;
@@ -91,6 +95,7 @@
     }
   }
 
+  // Lista de puntuaciones
   ion-list {
     border-radius: 10px;
     margin-top: 8px;

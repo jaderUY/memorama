@@ -27,7 +27,7 @@
   <!-- Mensaje de Victoria -->
   @if (finished) {
     <div class="victory-banner">
-      🎉 ¡Completado en {{ attempts }} intentos! Toca "Reiniciar" para volver a jugar.
+      ¡Completado en {{ attempts }} intentos! Toca "Reiniciar" para volver a jugar.
     </div>
   }
 
@@ -54,12 +54,13 @@
   @if (mejoresIntentos.length > 0) {
     <div class="records-container">
       <div class="records-header">
-        <h3>🏆 Tabla de Mejores Récords</h3>
+        <h3>Tabla de Mejores Récords</h3>
         <ion-button fill="clear" color="danger" size="small" (click)="borrarRecords()">
           BORRAR
         </ion-button>
       </div>
 
+      <!-- Lista de puntuaciones -->
       <ion-list lines="full">
         @for (record of mejoresIntentos; track $index) {
           <ion-item>

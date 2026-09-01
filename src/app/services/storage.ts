@@ -1,17 +1,19 @@
-import { Injectable } from '@angular/core';
-import { Preferences } from '@capacitor/preferences';
+import { Injectable } from '@angular/core'; // librería de Angular para inyectar dependencias
+import { Preferences } from '@capacitor/preferences'; // librería de Capacitor para manejar preferencias de almacenamiento
 
+// Interfaz para representar un registro de puntuación
 export interface ScoreRecord {
   intentos: number;
   fecha: string;
 }
 
+// Servicio para manejar el almacenamiento de puntuaciones
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root' // indica que este servicio estará disponible en toda la aplicación
 })
 export class ScoreService {
   private readonly STORAGE_KEY = 'memorama_perros_scores';
-  private _scores: ScoreRecord[] = [];
+  private _scores: ScoreRecord[] = []; 
 
   constructor() {
     this.cargarStorage();
