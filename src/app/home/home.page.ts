@@ -1,9 +1,9 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core'; // 1. Importar ChangeDetectorRef
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core'; 
 import { HttpClient } from '@angular/common/http';
-import { 
-  IonHeader, IonToolbar, IonTitle, IonContent, IonChip, 
-  IonBadge, IonButton, IonGrid, IonRow, IonCol, IonList, 
-  IonItem, IonLabel, IonNote, IonSpinner 
+import {
+  IonHeader, IonToolbar, IonTitle, IonContent, IonChip,
+  IonBadge, IonButton, IonGrid, IonRow, IonCol, IonList,
+  IonItem, IonLabel, IonNote, IonSpinner
 } from '@ionic/angular';
 import { ScoreService, ScoreRecord } from '../services/storage';
 
@@ -21,8 +21,8 @@ export interface Card {
   styleUrls: ['home.page.scss'],
   standalone: true,
   imports: [
-    IonHeader, IonToolbar, IonTitle, IonContent, IonChip, 
-    IonBadge, IonButton, IonGrid, IonRow, IonCol, IonList, 
+    IonHeader, IonToolbar, IonTitle, IonContent, IonChip,
+    IonBadge, IonButton, IonGrid, IonRow, IonCol, IonList,
     IonItem, IonLabel, IonNote, IonSpinner
   ]
 })
@@ -91,7 +91,7 @@ export class HomePage implements OnInit {
 
           this.cards = baraja.sort(() => Math.random() - 0.5);
         }
-        
+
         this.cargandoImagenes = false;
         this.cdr.detectChanges(); // Forzar a Angular a redibujar el HTML inmediatamente
       },
@@ -104,37 +104,50 @@ export class HomePage implements OnInit {
   }
 
   onCardClick(card: Card) {
+    // Evitar clics si el tablero está bloqueado o si la carta ya está volteada/emparejada
     if (this.boardLocked || card.revealed || card.matched) return;
 
     card.revealed = true;
+    this.cdr.detectChanges(); // Muestra el volteo de la carta inmediatamente en pantalla
 
     if (!this.firstCard) {
       this.firstCard = card;
       return;
     }
 
+    // Segunda carta elegida
     this.secondCard = card;
     this.attempts++;
-    this.boardLocked = true;
+    this.boardLocked = true; // Bloquea el tablero temporalmente
+    this.cdr.detectChanges(); // Actualiza el contador de intentos en la interfaz
 
     this.evaluarPar();
   }
 
   private evaluarPar() {
-    if (this.firstCard?.key === this.secondCard?.key) {
-      this.firstCard!.matched = true;
-      this.secondCard!.matched = true;
+    // Guardar referencias locales de las dos cartas seleccionadas
+    const card1 = this.firstCard;
+    const card2 = this.secondCard;
+
+    if (card1?.key === card2?.key) {
+      // Es Par
+      if (card1) card1.matched = true;
+      if (card2) card2.matched = true;
       this.matches++;
       this.resetTurno();
 
       if (this.matches === this.pairs) {
-        this.finished = true;
+        this.finished = true; // Invoca el setter que guarda en Capacitor Preferences
       }
+      this.cdr.detectChanges();
     } else {
+      // No es Par: Ocultar ambas cartas tras 1 segundo
       setTimeout(() => {
-        if (this.firstCard) this.firstCard.revealed = false;
-        if (this.secondCard) this.secondCard.revealed = false;
-        this.resetTurno();
+        if (card1) card1.revealed = false;
+        if (card2) card2.revealed = false;
+
+        this.resetTurno(); // Desbloquea el tablero (boardLocked = false)
+        this.cdr.detectChanges(); // Fuerza a Ionic/Angular a redibujar el tablero desbloqueado
       }, 1000);
     }
   }
@@ -142,7 +155,7 @@ export class HomePage implements OnInit {
   private resetTurno() {
     this.firstCard = null;
     this.secondCard = null;
-    this.boardLocked = false;
+    this.boardLocked = false; // Permite hacer clics de nuevo
   }
 
   async borrarRecords() {
