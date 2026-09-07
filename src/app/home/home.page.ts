@@ -1,13 +1,12 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { 
-  IonHeader, IonToolbar, IonTitle, IonContent, IonChip, 
-  IonBadge, IonButton, IonList, IonItem, IonLabel, IonNote, IonSpinner 
+import {
+  IonHeader, IonToolbar, IonTitle, IonContent, IonChip,
+  IonBadge, IonButton, IonList, IonItem, IonLabel, IonNote,
+  IonSpinner, IonModal, IonButtons, AlertController
 } from '@ionic/angular';
 import { ScoreService, ScoreRecord } from '../services/storage';
-import { IonGrid, IonRow } from "@ionic/angular";
 
-// Interfaz para representar una carta
 export interface Card {
   id: number;
   key: string;
@@ -21,12 +20,12 @@ export interface Card {
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
   standalone: true,
-  imports: [IonHeader, IonToolbar, IonTitle, IonContent, IonChip, 
-    IonBadge, IonButton, IonList, IonItem, IonLabel, IonNote, IonSpinner
+  imports: [
+    IonHeader, IonToolbar, IonTitle, IonContent, IonChip,
+    IonBadge, IonButton, IonList, IonItem, IonLabel, IonNote,
+    IonSpinner, IonModal, IonButtons
   ]
 })
-
-// Clase principal de la página de inicio
 export class HomePage implements OnInit {
   cards: Card[] = [];
   pairs: number = 6;
@@ -34,21 +33,21 @@ export class HomePage implements OnInit {
   attempts: number = 0;
   boardLocked: boolean = false;
   cargandoImagenes: boolean = false;
+  jugadorActual: string = 'Jugador';
 
-  private firstCard: Card | null = null; 
+  private firstCard: Card | null = null;
   private secondCard: Card | null = null;
-  private _finished: boolean = false; // Variable para controlar si el juego ha terminado
+  private _finished: boolean = false;
 
-  // Inyección de dependencias para servicios y referencias
-  private scoreService = inject(ScoreService); 
-  private http = inject(HttpClient); 
-  private cdr = inject(ChangeDetectorRef); // Referencia para detectar cambios en la vista
+  private scoreService = inject(ScoreService);
+  private http = inject(HttpClient);
+  private cdr = inject(ChangeDetectorRef);
+  private alertController = inject(AlertController);
 
   ngOnInit() {
     this.newGame();
   }
 
-  // Getter y setter para la propiedad finished
   get finished(): boolean {
     return this._finished;
   }
@@ -56,7 +55,7 @@ export class HomePage implements OnInit {
   set finished(val: boolean) {
     this._finished = val;
     if (val && this.attempts > 0) {
-      this.scoreService.registrarIntento(this.attempts);
+      this.scoreService.registrarIntento(this.jugadorActual, this.attempts);
       this.cdr.detectChanges();
     }
   }
@@ -65,8 +64,35 @@ export class HomePage implements OnInit {
     return this.scoreService.scores;
   }
 
-  // Método para iniciar un nuevo juego
-  newGame() {
+  async newGame() {
+    // Alerta interactiva para solicitar el nombre antes de crear la partida
+    const alert = await this.alertController.create({
+      header: '¡Bienvenido al Memorama!',
+      subHeader: 'Ingresa tu nombre para comenzar:',
+      inputs: [
+        {
+          name: 'nombre',
+          type: 'text',
+          placeholder: 'Nombre',
+          value: this.jugadorActual !== 'Jugador' ? this.jugadorActual : ''
+        }
+      ],
+      buttons: [
+        {
+          text: 'Jugar',
+          handler: (data) => {
+            this.jugadorActual = data.nombre?.trim() || 'Jugador Anónimo';
+            this.iniciarPartida();
+          }
+        }
+      ],
+      backdropDismiss: false // Obliga al jugador a confirmar un nombre
+    });
+
+    await alert.present();
+  }
+
+  private iniciarPartida() {
     this.matches = 0;
     this.attempts = 0;
     this._finished = false;
@@ -76,9 +102,7 @@ export class HomePage implements OnInit {
     this.cards = [];
     this.cargandoImagenes = true;
 
-    // Solicitud HTTP para obtener imágenes de perros
     this.http.get<any>(`https://dog.ceo/api/breeds/image/random/${this.pairs}`).subscribe({
-      // Manejo de la respuesta exitosa
       next: (res) => {
         if (res?.message) {
           const dogImages: string[] = res.message;
@@ -96,7 +120,6 @@ export class HomePage implements OnInit {
         this.cargandoImagenes = false;
         this.cdr.detectChanges();
       },
-      // Manejo de errores en la solicitud HTTP
       error: (err) => {
         console.error('Error al obtener imágenes:', err);
         this.cargandoImagenes = false;
@@ -105,7 +128,6 @@ export class HomePage implements OnInit {
     });
   }
 
-  // Método que se ejecuta al hacer clic en una carta
   onCardClick(card: Card) {
     if (this.boardLocked || card.revealed || card.matched) return;
 
@@ -125,7 +147,6 @@ export class HomePage implements OnInit {
     this.evaluarPar();
   }
 
-  // Método privado para evaluar si las dos cartas seleccionadas forman un par
   private evaluarPar() {
     const card1 = this.firstCard;
     const card2 = this.secondCard;

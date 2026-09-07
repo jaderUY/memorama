@@ -1,17 +1,24 @@
-// Contenedor principal de controles
+// Contenedor principal de controles e indicadores
 .controls-container {
   display: flex;
   justify-content: space-around;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 16px;
 }
 
-// Carga
+// Pantalla de carga (Spinner)
 .loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   margin-top: 40px;
+
+  p {
+    margin-top: 12px;
+    color: var(--ion-color-medium);
+  }
 }
 
 // Banner de victoria
@@ -26,7 +33,7 @@
   border: 1px solid #2dd36f;
 }
 
-// Grid adaptable 
+// Grid de cartas (3 columnas fijas con límite de ancho)
 .grid-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -35,12 +42,12 @@
   margin: 0 auto;
 }
 
-// Carta individual: Cuadrada perfecta con recorte estricto
+// Carta individual: Cuadrada perfecta y sin desbordamiento
 .card-item {
   width: 100%;
   aspect-ratio: 1 / 1;
   border-radius: 12px;
-  overflow: hidden; // Previene el desbordamiento de las imágenes
+  overflow: hidden; // Previene el desbordamiento de las imágenes de la API
   background-color: #3880ff;
   border: 2px solid transparent;
   box-sizing: border-box;
@@ -52,16 +59,16 @@
     transform: scale(0.96);
   }
 
-  // Estado cuando la carta está volteada
+  // Estado cuando la carta está emparejada
   &.matched {
     border-color: #2dd36f;
   }
 
-  // Imagen dentro de la carta
+  // Imagen ajustada dentro del contenedor
   img {
     width: 100%;
     height: 100%;
-    object-fit: cover; // Ajusta la imagen dentro de la casilla sin deformarla
+    object-fit: cover;
     display: block;
   }
 
@@ -76,29 +83,18 @@
   }
 }
 
-// Sección del historial de puntuaciones
-.records-container {
-  margin-top: 24px;
-  max-width: 480px;
-  margin-left: auto;
-  margin-right: auto;
+// Mensaje cuando la tabla de récords está vacía en el modal
+.empty-records {
+  text-align: center;
+  padding: 30px 16px;
+  color: var(--ion-color-medium);
+  font-size: 0.95rem;
+}
 
-  // Encabezado del historial
-  .records-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    h3 {
-      font-size: 1.1rem;
-      margin: 0;
-    }
-  }
-
-  // Lista de puntuaciones
+// Estilos adicionales para la lista dentro del ion-modal
+ion-modal {
   ion-list {
     border-radius: 10px;
-    margin-top: 8px;
     overflow: hidden;
   }
 }

@@ -5,15 +5,24 @@
 </ion-header>
 
 <ion-content class="ion-padding">
-  <!-- Marcador de estado -->
+  <!-- Marcador de estado e indicador del jugador -->
   <div class="controls-container">
+    <ion-chip color="primary">
+      <ion-label>👤 {{ jugadorActual }}</ion-label>
+    </ion-chip>
+
     <ion-chip color="dark">
       <ion-label>Pares: {{ matches }}/{{ pairs }}</ion-label>
     </ion-chip>
+
     <ion-chip color="dark">
       <ion-label>Intentos: {{ attempts }}</ion-label>
     </ion-chip>
-    <ion-button size="small" fill="outline" (click)="newGame()">REINICIAR</ion-button>
+
+    <ion-button size="small" fill="outline" (click)="newGame()">NUEVO JUEGO</ion-button>
+    <ion-button id="open-scores-modal" size="small" fill="solid" color="warning">
+      RÉCORDS
+    </ion-button>
   </div>
 
   <!-- Spinner de Carga -->
@@ -27,19 +36,19 @@
   <!-- Mensaje de Victoria -->
   @if (finished) {
     <div class="victory-banner">
-      ¡Completado en {{ attempts }} intentos! Toca "Reiniciar" para volver a jugar.
+      ¡Felicidades {{ jugadorActual }}! Completado en {{ attempts }} intentos.
     </div>
   }
 
-  <!-- Tablero de Cartas sin Desbordamiento -->
+  <!-- Tablero de Cartas -->
   @if (!cargandoImagenes) {
     <div class="grid-cards">
       @for (card of cards; track card.id) {
         <div 
           class="card-item" 
-          [class.matched]="card.matched"
+          [class.matched]="card.matched" 
           (click)="onCardClick(card)">
-          
+
           @if (card.revealed || card.matched) {
             <img [src]="card.imagenUrl" alt="Perro" />
           } @else {
@@ -50,32 +59,48 @@
     </div>
   }
 
-  <!-- Tabla de Mejores Récords -->
-  @if (mejoresIntentos.length > 0) {
-    <div class="records-container">
-      <div class="records-header">
-        <h3>Tabla de Mejores Récords</h3>
-        <ion-button fill="clear" color="danger" size="small" (click)="borrarRecords()">
-          BORRAR
-        </ion-button>
-      </div>
+  <!-- Sheet Modal para el Historial de Récords -->
+  <ion-modal trigger="open-scores-modal" [initialBreakpoint]="0.6" [breakpoints]="[0, 0.6, 0.9]">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>🏆 Tabla de Récords</ion-title>
+          <ion-buttons slot="end">
+            @if (mejoresIntentos.length > 0) {
+              <ion-button color="danger" (click)="borrarRecords()">BORRAR</ion-button>
+            }
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
 
-      <!-- Lista de puntuaciones -->
-      <ion-list lines="full">
-        @for (record of mejoresIntentos; track $index) {
-          <ion-item>
-            <ion-badge slot="start" [color]="$index === 0 ? 'warning' : 'medium'">
-              #{{ $index + 1 }}
-            </ion-badge>
-            <ion-label>
-              <p>Fecha: {{ record.fecha }}</p>
-            </ion-label>
-            <ion-note slot="end" color="primary">
-              <strong>{{ record.intentos }} intentos</strong>
-            </ion-note>
-          </ion-item>
+      <ion-content class="ion-padding">
+        @if (mejoresIntentos.length === 0) {
+          <div class="empty-records">
+            <p>Aún no hay récords registrados. ¡Completa tu primera partida!</p>
+          </div>
+        } @else {
+          <ion-list lines="full">
+            @for (record of mejoresIntentos; track $index) {
+              <ion-item>
+                <ion-badge slot="start" [color]="$index === 0 ? 'warning' : 'medium'">
+                  #{{ $index + 1 }}
+                </ion-badge>
+                
+                <!-- Estructura: Nombre y Fecha-Hora -->
+                <ion-label>
+                  <h2><strong>{{ record.nombre }}</strong></h2>
+                  <p>Fecha: {{ record.fecha }}</p>
+                </ion-label>
+
+                <!-- Puntuación o Intentos -->
+                <ion-note slot="end" color="primary">
+                  <strong>{{ record.intentos }} intentos</strong>
+                </ion-note>
+              </ion-item>
+            }
+          </ion-list>
         }
-      </ion-list>
-    </div>
-  }
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 </ion-content>
