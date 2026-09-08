@@ -39,10 +39,10 @@ export class HomePage implements OnInit {
   private secondCard: Card | null = null;
   private _finished: boolean = false;
 
-  private scoreService = inject(ScoreService);
-  private http = inject(HttpClient);
-  private cdr = inject(ChangeDetectorRef);
-  private alertController = inject(AlertController);
+  private scoreService = inject(ScoreService); // servicio para manejar los récords de puntuación
+  private http = inject(HttpClient);  // servicio para realizar solicitudes HTTP a la API de imágenes de perros
+  private cdr = inject(ChangeDetectorRef); // servicio para detectar cambios en la vista y actualizarla cuando sea necesario
+  private alertController = inject(AlertController); // servicio para mostrar alertas interactivas al usuario
 
   ngOnInit() {
     this.newGame();
@@ -89,7 +89,7 @@ export class HomePage implements OnInit {
       backdropDismiss: false // Obliga al jugador a confirmar un nombre
     });
 
-    await alert.present();
+    await alert.present(); 
   }
 
   private iniciarPartida() {

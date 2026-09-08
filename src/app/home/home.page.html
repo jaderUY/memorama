@@ -44,11 +44,7 @@
   @if (!cargandoImagenes) {
     <div class="grid-cards">
       @for (card of cards; track card.id) {
-        <div 
-          class="card-item" 
-          [class.matched]="card.matched" 
-          (click)="onCardClick(card)">
-
+        <div class="card-item" [class.matched]="card.matched" (click)="onCardClick(card)">
           @if (card.revealed || card.matched) {
             <img [src]="card.imagenUrl" alt="Perro" />
           } @else {
@@ -80,8 +76,10 @@
           </div>
         } @else {
           <ion-list lines="full">
+            <!-- Lista de Récords -->
             @for (record of mejoresIntentos; track $index) {
               <ion-item>
+                <!-- Badge con el ranking -->
                 <ion-badge slot="start" [color]="$index === 0 ? 'warning' : 'medium'">
                   #{{ $index + 1 }}
                 </ion-badge>
