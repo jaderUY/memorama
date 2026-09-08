@@ -25,9 +25,7 @@ export class ScoreService {
 
   set scores(nuevosScores: ScoreRecord[]) {
     this._scores = nuevosScores
-      .sort((a, b) => a.intentos - b.intentos) // Ordena los récords por número de intentos (ascendente)
-      .slice(0, 5); // Limita la lista a los 5 mejores récords
-
+      .sort((a, b) => a.intentos - b.intentos); // Ordena los récords por número de intentos (ascendente)
     this.guardarEnStorage();
   }
 
